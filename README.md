@@ -1,9 +1,11 @@
 # NetBlizzard
+
 ### Environmental & Pollution Monitoring Network over 5G/6G
+
 **PROTOWAVE 2026 — From Prompt to Prototype**  
-*Theme 7: 5G/6G-Enabled Smart City Communication and Monitoring*  
-*Prototype 4: Environmental & Pollution Monitoring Network over 5G/6G*  
-*Department of Networking and Communications | School of Computing | SRM-IST*
+_Theme 7: 5G/6G-Enabled Smart City Communication and Monitoring_  
+_Prototype 4: Environmental & Pollution Monitoring Network over 5G/6G_  
+_Department of Networking and Communications | School of Computing | SRM-IST_
 
 ---
 
@@ -12,6 +14,7 @@
 Modern smart cities require real-time atmospheric and acoustic environmental sensing to protect public health. However, streaming dense environmental telemetry from thousands of city-wide sensor nodes constantly strains wireless spectrum and energy budgets.
 
 **NetBlizzard** implements an intelligent **5G/6G adaptive telemetry network**:
+
 - Under **normal conditions**, sensor nodes transmit periodic telemetry at conservative frequencies using standard broadband channels (**eMBB** / **mMTC**), preserving network resources.
 - When an air quality or acoustic threshold breach occurs (e.g., AQI > 150, PM2.5 > 55 ug/m3, or Noise > 80 dB), the network automatically provisions an **Ultra-Reliable Low-Latency Communication (URLLC)** slice.
 - Transmission rate dynamically accelerates from **0.2 Hz (5 s) -> 2.0 Hz (500 ms)**, network latency drops from ~45 ms -> 1-2 ms, and data packets receive Critical Priority (P1) QoS treatment.
@@ -20,15 +23,15 @@ Modern smart cities require real-time atmospheric and acoustic environmental sen
 
 ## 5G/6G Telemetry & Networking Concepts Simulated
 
-| Feature | Safe State (Normal) | Warning State (Elevated) | Danger / Spiked State (Emergency) |
-| :--- | :--- | :--- | :--- |
-| **Network Slice** | **eMBB** (Enhanced Mobile Broadband) | **mMTC** (Massive Machine-Type Comms) | **URLLC** (Ultra-Reliable Low-Latency) |
-| **QoS Priority** | `P3` (Low Priority) | `P2` (Elevated) | `P1` (CRITICAL — Preempts non-urgent traffic) |
-| **Update Frequency** | 0.2 Hz (every 5000 ms) | 0.5 Hz (every 2000 ms) | 2.0 Hz (every 500 ms) |
-| **Simulated Latency** | 40-50 ms | 15-20 ms | **1.0-2.5 ms** |
-| **Bandwidth Allocation**| 2-4 Mbps | 5-8 Mbps | **10-15 Mbps** |
-| **Visual Indicator** | Vivid Green (#1fe090) — Slow breath | Vivid Amber (#f5c518) — Medium pulse | Vivid Red (#ff4545) — Rapid alert pulse |
-| **Spiked / Critical** | — | — | Ultra-Red (#ff1e1e) — Ultra-fast flicker (0.22 s) |
+| Feature                  | Safe State (Normal)                  | Warning State (Elevated)              | Danger / Spiked State (Emergency)                 |
+| :----------------------- | :----------------------------------- | :------------------------------------ | :------------------------------------------------ |
+| **Network Slice**        | **eMBB** (Enhanced Mobile Broadband) | **mMTC** (Massive Machine-Type Comms) | **URLLC** (Ultra-Reliable Low-Latency)            |
+| **QoS Priority**         | `P3` (Low Priority)                  | `P2` (Elevated)                       | `P1` (CRITICAL — Preempts non-urgent traffic)     |
+| **Update Frequency**     | 0.2 Hz (every 5000 ms)               | 0.5 Hz (every 2000 ms)                | 2.0 Hz (every 500 ms)                             |
+| **Simulated Latency**    | 40-50 ms                             | 15-20 ms                              | **1.0-2.5 ms**                                    |
+| **Bandwidth Allocation** | 2-4 Mbps                             | 5-8 Mbps                              | **10-15 Mbps**                                    |
+| **Visual Indicator**     | Vivid Green (#1fe090) — Slow breath  | Vivid Amber (#f5c518) — Medium pulse  | Vivid Red (#ff4545) — Rapid alert pulse           |
+| **Spiked / Critical**    | —                                    | —                                     | Ultra-Red (#ff1e1e) — Ultra-fast flicker (0.22 s) |
 
 ---
 
@@ -98,6 +101,7 @@ NetBlizzard/
 ## Dashboard Feature Tour
 
 ### 1. Dominant GIS City Map (CityMap.jsx)
+
 - Dark-filtered OpenStreetMap cartography centered on **Delhi NCR (8 critical zones)**.
 - **2-km Coordinate Grid Overlay** simulating professional telecom/NOC map tooling.
 - **Hex-approximate Heat Overlay** providing color-graded pollution dispersion (Green -> Yellow -> Orange -> Red).
@@ -109,6 +113,7 @@ NetBlizzard/
 - Clickable pins that surface rich interactive tooltips and update sidebars.
 
 ### 2. Live Telemetry & 5G/6G Slicing Panel (NetworkPanel.jsx)
+
 - Selected zone coordinate header with high-precision lat/long telemetry.
 - Prominent 30 px bold **AQI Index Readout** with EPA classification badge.
 - Real-time sensor channels: **AQI**, **PM2.5 (ug/m3)**, **CO2 (ppm)**, and **Noise (dB)**.
@@ -116,20 +121,24 @@ NetBlizzard/
 - Real-time link telemetry: simulated latency (ms), update frequency (Hz), reporting interval (ms), and bandwidth (Mbps).
 
 ### 3. Real-Time Time-Series Analysis (SensorDetail.jsx)
+
 - Built with high-performance SVG line charts (`Recharts`) with zero interpolation lag.
 - Tracks the last 40 data points per zone for all 4 parameters simultaneously.
 - Features red dashed **Danger Threshold Reference Lines**; charts dynamically light up with alert badges when thresholds are breached.
 
 ### 4. Interactive Spike Simulator (ControlPanel.jsx)
+
 - Allows jury members or presenters to manually inject environmental pollution surges into any zone with a single click.
 - Instantly triggers server-side threshold violation, URLLC slice escalation, and terminal alert broadcasts.
 - **RESOLVE** restores the zone to ambient equilibrium and downgrades the slice to eMBB.
 
 ### 5. Terminal Alert Stream (TerminalLog.jsx)
+
 - Fixed 120 px bottom operations terminal with status accents and blinking shell cursor.
 - Formatted log stream tagged with `[CRIT]`, `[WARN]`, and `[ OK ]` severity codes.
 
 ### 6. Telecom Status Header (App.jsx)
+
 - Zone distribution counts (Safe, Warning, Critical).
 - Telecom-style 4-bar **Signal Strength Meter** dynamically mapped to average network latency.
 - Live system clock (HH:MM:SS).
@@ -140,12 +149,15 @@ NetBlizzard/
 ## Quick Start Guide
 
 ### Prerequisites
+
 - **Node.js**: v18.0.0 or later (tested with Node v24.18.0)
 - **Bun**: v1.3.0 or later
 - **PowerShell** or another terminal
 
 ### Installation
+
 Install dependencies separately for the server and client. Run these commands from the repository root:
+
 ```powershell
 # Install server dependencies
 cd server
@@ -163,18 +175,22 @@ If Bun is not installed, follow the instructions at https://bun.sh/docs/installa
 Open two terminals in VS Code (`Ctrl+Shift+` `` ` ``):
 
 **Terminal 1 — Backend Telemetry Server:**
+
 ```powershell
 cd server
 bun start
 ```
-*Server starts on `http://localhost:4000` with WebSocket on `ws://localhost:4000`.*
+
+_Server starts on `http://localhost:4000` with WebSocket on `ws://localhost:4000`._
 
 **Terminal 2 — Frontend Operations Dashboard:**
+
 ```powershell
 cd client
 bun run dev
 ```
-*Vite serves the client on `http://localhost:5173`.*
+
+_Vite serves the client on `http://localhost:5173`._
 
 Open your web browser and navigate to:
 **http://localhost:5173**
@@ -182,11 +198,13 @@ Open your web browser and navigate to:
 ### Verification
 
 Check that the backend is running:
+
 ```powershell
 Invoke-RestMethod http://localhost:4000/api/health
 ```
 
 Create a production build of the frontend:
+
 ```powershell
 cd client
 bun run build
@@ -224,6 +242,7 @@ Follow this sequence to score full marks against the judging rubric:
    - Demonstrate the **LIVE / OFFLINE** toggle switch in the header.
 
 ---
+
 <div align="center">
 NetBlizzard (c) 2026 SRM Institute of Science and Technology. Developed for PROTOWAVE 2026.
 </div>

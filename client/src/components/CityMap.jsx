@@ -23,6 +23,10 @@ function statusRingClass(status, spiked) {
   return 'ring-slow';
 }
 
+function flowColor(zone) {
+  return aqiToColor(zone.aqi).fill;
+}
+
 // Custom pulsing marker icon
 function createMarkerIcon(zone) {
   const status = zone.network?.status || 'safe';
@@ -165,6 +169,112 @@ function GridOverlay() {
   return null;
 }
 
+// Animate telemetry packets from every sensor into the Central Hub.
+function DataFlowOverlay({ zones }) {
+  const map = useMap();
+  const animationRef = useRef(null);
+  const layerRef = useRef(null);
+  const flowStateRef = useRef({ routes: new Map(), packets: new Map(), items: [] });
+  const zonesRef = useRef(zones);
+
+  useEffect(() => {
+    zonesRef.current = zones;
+  }, [zones]);
+
+  useEffect(() => {
+    if (layerRef.current) layerRef.current.remove();
+
+    const currentZones = zonesRef.current;
+    const hub = currentZones.find(zone => zone.zoneId === 1);
+    if (!hub || currentZones.length < 2) return undefined;
+
+    const layer = L.layerGroup().addTo(map);
+    const packets = [];
+    const routes = new Map();
+    const packetMarkers = new Map();
+
+    const createPacketIcon = zone => {
+      const color = flowColor(zone);
+      return L.divIcon({
+        className: '',
+        html: `<span style="display:block;width:7px;height:7px;border-radius:50%;background:${color};box-shadow:0 0 7px ${color};border:1px solid #fff8;"></span>`,
+        iconSize: [7, 7],
+        iconAnchor: [3.5, 3.5],
+      });
+    };
+
+    currentZones
+      .filter(zone => zone.zoneId !== hub.zoneId)
+      .forEach((zone, index) => {
+        const color = flowColor(zone);
+        const route = L.polyline(
+          [[zone.lat, zone.lng], [hub.lat, hub.lng]],
+          {
+            color,
+            weight: zone.network?.status === 'danger' || zone.spiked ? 1.8 : 1,
+            opacity: zone.network?.status === 'safe' ? 0.28 : 0.48,
+            dashArray: '3 8',
+            interactive: false,
+          },
+        );
+        layer.addLayer(route);
+        routes.set(zone.zoneId, route);
+
+        const packet = L.marker([zone.lat, zone.lng], {
+          icon: createPacketIcon(zone),
+          interactive: false,
+        });
+        layer.addLayer(packet);
+        packetMarkers.set(zone.zoneId, packet);
+        packets.push({ packet, source: zone, target: hub, offset: index / currentZones.length });
+      });
+
+    flowStateRef.current = { routes, packets: packetMarkers, items: packets, createPacketIcon };
+
+    const animate = now => {
+      packets.forEach(({ packet, source, target, offset }) => {
+        const progress = ((now / 2600 + offset) % 1);
+        const lat = source.lat + (target.lat - source.lat) * progress;
+        const lng = source.lng + (target.lng - source.lng) * progress;
+        packet.setLatLng([lat, lng]);
+      });
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    layerRef.current = layer;
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      layer.remove();
+      layerRef.current = null;
+      flowStateRef.current = { routes: new Map(), packets: new Map(), items: [] };
+    };
+  }, [zones.length, map]);
+
+  useEffect(() => {
+    const { routes, packets, createPacketIcon } = flowStateRef.current;
+    if (!createPacketIcon) return;
+
+    zones.forEach(zone => {
+      if (zone.zoneId === 1) return;
+      const route = routes.get(zone.zoneId);
+      const packet = packets.get(zone.zoneId);
+      const isAlert = zone.network?.status === 'danger' || zone.spiked;
+      if (route) {
+        route.setStyle({
+          color: flowColor(zone),
+          weight: isAlert ? 1.8 : 1,
+          opacity: zone.network?.status === 'safe' ? 0.28 : 0.48,
+        });
+      }
+      if (packet) packet.setIcon(createPacketIcon(zone));
+    });
+  }, [zones]);
+
+  return null;
+}
+
 function MarkersLayer({ zones, selectedZoneId, onSelectZone }) {
   const map = useMap();
   const markersRef = useRef({});
@@ -206,6 +316,7 @@ export default function CityMap({ zones, selectedZoneId, onSelectZone }) {
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OSM" />
       <GridOverlay />
       <HeatOverlay zones={zones} />
+      <DataFlowOverlay zones={zones} />
       <MarkersLayer zones={zones} selectedZoneId={selectedZoneId} onSelectZone={onSelectZone} />
     </MapContainer>
   );

@@ -67,7 +67,7 @@ flowchart TD
 ## Project Directory Structure
 
 ```
-D:\Projects\NetBlizzard\
+NetBlizzard/
 ├── package.json               # Root scripts (server + client dev)
 ├── README.md                  # Comprehensive documentation & audit report
 ├── server/                    # Backend telemetry & 5G/6G slice simulation
@@ -140,20 +140,23 @@ D:\Projects\NetBlizzard\
 ## Quick Start Guide
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or later (Tested on Node v24.12.0)
-- **npm**: v9.0.0 or later
+- **Node.js**: v18.0.0 or later (tested with Node v24.18.0)
+- **Bun**: v1.3.0 or later
+- **PowerShell** or another terminal
 
 ### Installation
-Both server and client dependencies are pre-installed in the repository. To re-install:
+Install dependencies separately for the server and client. Run these commands from the repository root:
 ```powershell
 # Install server dependencies
-cd D:\Projects\NetBlizzard\server
-npm install
+cd server
+bun install
 
 # Install client dependencies
-cd D:\Projects\NetBlizzard\client
-npm install
+cd ..\client
+bun install
 ```
+
+If Bun is not installed, follow the instructions at https://bun.sh/docs/installation.
 
 ### Running the Application
 
@@ -161,20 +164,35 @@ Open two terminals in VS Code (`Ctrl+Shift+` `` ` ``):
 
 **Terminal 1 — Backend Telemetry Server:**
 ```powershell
-cd D:\Projects\NetBlizzard\server
-node index.js
+cd server
+bun start
 ```
 *Server starts on `http://localhost:4000` with WebSocket on `ws://localhost:4000`.*
 
 **Terminal 2 — Frontend Operations Dashboard:**
 ```powershell
-cd D:\Projects\NetBlizzard\client
-npm run dev
+cd client
+bun run dev
 ```
 *Vite serves the client on `http://localhost:5173`.*
 
 Open your web browser and navigate to:
 **http://localhost:5173**
+
+### Verification
+
+Check that the backend is running:
+```powershell
+Invoke-RestMethod http://localhost:4000/api/health
+```
+
+Create a production build of the frontend:
+```powershell
+cd client
+bun run build
+```
+
+To stop either process, press `Ctrl+C` in its terminal.
 
 ---
 

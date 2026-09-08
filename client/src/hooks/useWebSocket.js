@@ -8,7 +8,9 @@ export function useWebSocket() {
   const [zones,     setZones]     = useState([]);
   const [alerts,    setAlerts]    = useState([]);
   const [connected, setConnected] = useState(false);
+  const [liveEnabled, setLiveEnabled] = useState(true);
   const reconnectRef = useRef(null);
+  const liveEnabledRef = useRef(true);
 
   const send = useCallback((msg) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -25,6 +27,8 @@ export function useWebSocket() {
   }, [send]);
 
   const connect = useCallback(() => {
+    if (!liveEnabledRef.current) return;
+
     // Clear any pending reconnect timer
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
 
@@ -55,8 +59,12 @@ export function useWebSocket() {
 
     ws.onclose = () => {
       setConnected(false);
-      console.log('[WS] Disconnected. Reconnecting in 3s…');
-      reconnectRef.current = setTimeout(connect, 3000);
+      if (liveEnabledRef.current) {
+        console.log('[WS] Disconnected. Reconnecting in 3s…');
+        reconnectRef.current = setTimeout(connect, 3000);
+      } else {
+        console.log('[WS] Live updates paused');
+      }
     };
 
     ws.onerror = () => {
@@ -66,7 +74,24 @@ export function useWebSocket() {
 
   // Manual reconnect — called by the UI toggle button
   const reconnect = useCallback(() => {
+    liveEnabledRef.current = true;
+    setLiveEnabled(true);
     if (wsRef.current) wsRef.current.close();
+    connect();
+  }, [connect]);
+
+  const toggleConnection = useCallback(() => {
+    if (liveEnabledRef.current) {
+      liveEnabledRef.current = false;
+      setLiveEnabled(false);
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      if (wsRef.current) wsRef.current.close();
+      setConnected(false);
+      return;
+    }
+
+    liveEnabledRef.current = true;
+    setLiveEnabled(true);
     connect();
   }, [connect]);
 
@@ -78,5 +103,5 @@ export function useWebSocket() {
     };
   }, [connect]);
 
-  return { zones, alerts, connected, triggerSpike, resolveSpike, reconnect };
+  return { zones, alerts, connected, liveEnabled, triggerSpike, resolveSpike, reconnect, toggleConnection };
 }

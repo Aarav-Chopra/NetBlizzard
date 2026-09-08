@@ -1,6 +1,6 @@
 // App.jsx — NetBlizzard: fixed layout, interactive elements, better contrast
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Wifi, WifiOff, Layers, Radio, BarChart2, Sliders, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Layers, Radio, BarChart2, Sliders, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useWebSocket } from './hooks/useWebSocket';
 import CityMap from './components/CityMap';
 import NetworkPanel from './components/NetworkPanel';
@@ -58,16 +58,23 @@ function ZoneCounts({ zones }) {
 }
 
 /* ── Connection toggle switch ──────────── */
-function ConnToggle({ connected, onRetry }) {
+function ConnToggle({ connected, liveEnabled, onToggle }) {
   const [hovered, setHovered] = useState(false);
 
-  if (connected) {
+  if (connected && liveEnabled) {
     return (
-      <div style={{
+      <button
+        onClick={onToggle}
+        title="Turn live updates off"
+        aria-label="Turn live updates off"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px',
         fontFamily: 'IBM Plex Mono,monospace', fontSize: 9, fontWeight: 600, letterSpacing: '.1em',
-        color: '#4fa389', background: '#1a302a', border: '1px solid #2d5048',
-        userSelect: 'none',
+        color: hovered ? '#dde2ea' : '#4fa389', background: hovered ? '#2e1414' : '#1a302a',
+        border: `1px solid ${hovered ? '#5a2828' : '#2d5048'}`,
+        userSelect: 'none', cursor: 'pointer', transition: 'all .15s',
       }}>
         {/* Toggle track — ON state */}
         <div style={{
@@ -79,17 +86,18 @@ function ConnToggle({ connected, onRetry }) {
             width: 9, height: 9, background: '#4fa389', borderRadius: 1,
           }} />
         </div>
-        LIVE
-      </div>
+        {hovered ? 'OFF' : 'LIVE'}
+      </button>
     );
   }
 
   return (
     <button
-      onClick={onRetry}
+      onClick={onToggle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      title="Click to retry connection"
+      title="Turn live updates on"
+      aria-label="Turn live updates on"
       style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px',
         fontFamily: 'IBM Plex Mono,monospace', fontSize: 9, fontWeight: 600, letterSpacing: '.1em',
@@ -109,7 +117,7 @@ function ConnToggle({ connected, onRetry }) {
           width: 9, height: 9, background: '#5a2828', borderRadius: 1,
         }} />
       </div>
-      {hovered ? <><RefreshCw size={9} strokeWidth={2} style={{ marginRight: 2 }} />RETRY</> : 'OFFLINE'}
+      {hovered ? <><RefreshCw size={9} strokeWidth={2} style={{ marginRight: 2 }} />ON</> : 'OFFLINE'}
     </button>
   );
 }
@@ -267,7 +275,7 @@ function RightPanel({ zone, zones, triggerSpike, resolveSpike }) {
 
 /* ── Root App ──────────────────────────── */
 export default function App() {
-  const { zones, alerts, connected, triggerSpike, resolveSpike, reconnect } = useWebSocket();
+  const { zones, alerts, connected, liveEnabled, triggerSpike, resolveSpike, toggleConnection } = useWebSocket();
   const [selectedId, setSelectedId] = useState(null);
 
   // Auto-select first zone once data loads
@@ -296,7 +304,7 @@ export default function App() {
           <ZoneCounts zones={zones} />
           <span style={{ width: 1, height: 14, background: '#333d4d' }} />
           <LiveClock />
-          <ConnToggle connected={connected} onRetry={reconnect} />
+          <ConnToggle connected={connected} liveEnabled={liveEnabled} onToggle={toggleConnection} />
         </div>
       </header>
 

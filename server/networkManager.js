@@ -45,6 +45,7 @@ const NETWORK_PROFILES = {
 };
 
 function classifyZone(sensor) {
+  if (sensor.spiked) return 'danger';
   const { aqi, noise, pm25, co2 } = sensor;
   if (
     aqi > THRESHOLDS.aqi ||

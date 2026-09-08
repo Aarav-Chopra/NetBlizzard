@@ -1,8 +1,9 @@
-// App.jsx — NetBlizzard: fixed layout, interactive elements, better contrast
-import { useState, useMemo, useEffect } from 'react';
-import { Layers, Radio, BarChart2, Sliders, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+// App.jsx — NetBlizzard: Multi-City 5G/6G Smart City Operations Dashboard
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Layers, Radio, BarChart2, Sliders, RefreshCw, ChevronDown, ChevronUp, MapPin, Search } from 'lucide-react';
 import { useWebSocket } from './hooks/useWebSocket';
 import CityMap from './components/CityMap';
+import { CITIES_CONFIG } from './constants/cities';
 import NetworkPanel from './components/NetworkPanel';
 import SensorDetail from './components/SensorDetail';
 import ControlPanel from './components/ControlPanel';
@@ -59,66 +60,172 @@ function ZoneCounts({ zones }) {
 
 /* ── Connection toggle switch ──────────── */
 function ConnToggle({ connected, liveEnabled, onToggle }) {
-  const [hovered, setHovered] = useState(false);
-
-  if (connected && liveEnabled) {
-    return (
-      <button
-        onClick={onToggle}
-        title="Turn live updates off"
-        aria-label="Turn live updates off"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px',
-        fontFamily: 'IBM Plex Mono,monospace', fontSize: 9, fontWeight: 600, letterSpacing: '.1em',
-        color: hovered ? '#dde2ea' : '#4fa389', background: hovered ? '#2e1414' : '#1a302a',
-        border: `1px solid ${hovered ? '#5a2828' : '#2d5048'}`,
-        userSelect: 'none', cursor: 'pointer', transition: 'all .15s',
-      }}>
-        {/* Toggle track — ON state */}
-        <div style={{
-          width: 28, height: 14, background: '#2d5048', border: '1px solid #4fa389',
-          position: 'relative', flexShrink: 0,
-        }}>
-          <div style={{
-            position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)',
-            width: 9, height: 9, background: '#4fa389', borderRadius: 1,
-          }} />
-        </div>
-        {hovered ? 'OFF' : 'LIVE'}
-      </button>
-    );
-  }
+  const isOnline = liveEnabled && connected;
 
   return (
     <button
       onClick={onToggle}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      title="Turn live updates on"
-      aria-label="Turn live updates on"
+      title={isOnline ? 'Live stream active. Click to pause/turn offline' : 'Offline. Click to connect/resume live stream'}
       style={{
         display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px',
         fontFamily: 'IBM Plex Mono,monospace', fontSize: 9, fontWeight: 600, letterSpacing: '.1em',
-        color: hovered ? '#dde2ea' : '#a84040',
-        background: hovered ? '#3a1818' : '#2e1414',
-        border: `1px solid ${hovered ? '#a84040' : '#5a2828'}`,
+        color: isOnline ? '#1fe090' : '#ff4545',
+        background: isOnline ? '#0d2a1e' : '#2a0c0c',
+        border: `1px solid ${isOnline ? '#174d34' : '#6a1e1e'}`,
         cursor: 'pointer', transition: 'all .15s',
       }}
     >
-      {/* Toggle track — OFF state */}
       <div style={{
-        width: 28, height: 14, background: '#1a0a0a', border: '1px solid #5a2828',
+        width: 28, height: 14,
+        background: isOnline ? '#174d34' : '#1a0a0a',
+        border: `1px solid ${isOnline ? '#1fe090' : '#6a1e1e'}`,
         position: 'relative', flexShrink: 0,
       }}>
         <div style={{
-          position: 'absolute', left: 2, top: '50%', transform: 'translateY(-50%)',
-          width: 9, height: 9, background: '#5a2828', borderRadius: 1,
+          position: 'absolute',
+          left: isOnline ? 'auto' : 2,
+          right: isOnline ? 2 : 'auto',
+          top: '50%', transform: 'translateY(-50%)',
+          width: 8, height: 8,
+          background: isOnline ? '#1fe090' : '#ff4545',
+          borderRadius: 1,
+          boxShadow: isOnline ? '0 0 6px #1fe090' : 'none',
         }} />
       </div>
-      {hovered ? <><RefreshCw size={9} strokeWidth={2} style={{ marginRight: 2 }} />ON</> : 'OFFLINE'}
+      {isOnline ? 'LIVE' : 'OFFLINE'}
     </button>
+  );
+}
+
+/* ── City Search & Selector ────────────── */
+function CitySelector({ selectedCityId, onSelectCity }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef(null);
+
+  const cityList = Object.values(CITIES_CONFIG);
+  const filtered = cityList.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.state.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const currentCity = CITIES_CONFIG[selectedCityId] || CITIES_CONFIG.delhi;
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      {/* City Trigger Button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '4px 9px',
+          background: '#252a32',
+          border: '1px solid #38bdf844',
+          borderRadius: 2,
+          color: '#dde2ea',
+          fontFamily: 'IBM Plex Mono, monospace',
+          fontSize: 11,
+          cursor: 'pointer',
+          letterSpacing: '.04em',
+        }}
+      >
+        <MapPin size={13} color="#38bdf8" />
+        <span style={{ fontWeight: 600, color: '#38bdf8' }}>{currentCity.name}</span>
+        <ChevronDown
+          size={12}
+          color="#6a7d96"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
+        />
+      </button>
+
+      {/* Dropdown Menu */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, marginTop: 4,
+          width: 240, background: '#1a1d21', border: '1px solid #333d4d',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.8)', zIndex: 2500,
+          borderRadius: 2, overflow: 'hidden',
+        }}>
+          {/* Search Bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 8px', borderBottom: '1px solid #272e38',
+            background: '#141719',
+          }}>
+            <Search size={11} color="#6a7d96" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search metro city…"
+              autoFocus
+              style={{
+                background: 'transparent', border: 'none', outline: 'none',
+                color: '#dde2ea', fontFamily: 'IBM Plex Mono, monospace',
+                fontSize: 10, width: '100%',
+              }}
+            />
+          </div>
+
+          {/* City List */}
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            {filtered.map(city => {
+              const isSelected = city.id === selectedCityId;
+              return (
+                <button
+                  key={city.id}
+                  onClick={() => {
+                    onSelectCity(city.id);
+                    setOpen(false);
+                    setSearch('');
+                  }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', width: '100%',
+                    textAlign: 'left', padding: '6px 10px',
+                    borderBottom: '1px solid #1e2228',
+                    background: isSelected ? '#252a32' : 'transparent',
+                    borderLeft: isSelected ? '2px solid #38bdf8' : '2px solid transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{
+                      fontFamily: 'IBM Plex Mono, monospace', fontSize: 11,
+                      fontWeight: isSelected ? 600 : 400,
+                      color: isSelected ? '#38bdf8' : '#dde2ea',
+                    }}>
+                      {city.name}
+                    </span>
+                    <span style={{
+                      fontFamily: 'IBM Plex Mono, monospace', fontSize: 8,
+                      color: '#6a7d96',
+                    }}>
+                      {city.tower.id}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 9, color: '#6a7d96', marginTop: 1 }}>{city.state}</span>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div style={{ padding: '8px', fontSize: 10, color: '#6a7d96', textAlign: 'center' }}>
+                No matching city
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -132,10 +239,13 @@ function dotClass(zone) {
   return st === 'safe' ? 'dot dot-good' : st === 'warning' ? 'dot dot-mod' : 'dot dot-danger';
 }
 
-function ZoneList({ zones, selectedId, onSelect }) {
+function ZoneList({ zones, selectedId, onSelect, cityName }) {
   return (
     <div className="app-zones panel-base" style={{ borderRight: '1px solid #333d4d' }}>
-      <div className="sec-label" style={{ fontSize: 11 }}>Zones ({zones.length})</div>
+      <div className="sec-label" style={{ fontSize: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{cityName}</span>
+        <span style={{ color: '#38bdf8' }}>{zones.length} ZONES</span>
+      </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {zones.map(z => {
           const st  = z.network?.status || 'safe';
@@ -192,7 +302,6 @@ function AqiLegend() {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ position: 'absolute', bottom: 10, left: 10, zIndex: 1000 }}>
-      {/* Toggle button — always visible */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{
@@ -203,17 +312,15 @@ function AqiLegend() {
           backdropFilter: 'blur(4px)',
         }}
       >
-        {/* Mini color bar */}
         <div style={{ display: 'flex', gap: 2 }}>
           {AQI_ENTRIES.map(([,c]) => (
             <div key={c} style={{ width: 6, height: 6, background: c }} />
           ))}
         </div>
-        AQI Scale
+        AQI Scale &amp; Topology
         {open ? <ChevronDown size={9} /> : <ChevronUp size={9} />}
       </button>
 
-      {/* Expanded legend */}
       {open && (
         <div style={{
           marginTop: 3, padding: '7px 10px',
@@ -227,9 +334,20 @@ function AqiLegend() {
               <span style={{ fontSize: 10, color: '#dde2ea' }}>{l}</span>
             </div>
           ))}
-          <div style={{ borderTop: '1px solid #272e38', marginTop: 4, paddingTop: 3,
-            fontFamily: 'IBM Plex Mono,monospace', fontSize: 8, color: '#5c6a7c' }}>
-            EPA / WHO Standard
+          <div style={{ borderTop: '1px solid #272e38', marginTop: 6, paddingTop: 5,
+            fontFamily: 'IBM Plex Mono,monospace', fontSize: 9, color: '#6a7d96' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, color: '#38bdf8' }}>
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#071626', border: '1.5px solid #38bdf8' }}></span>
+              <span>Central Macro Tower</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, color: '#9aafc8' }}>
+              <span style={{ fontFamily: 'monospace', letterSpacing: '-1px' }}>- - -</span>
+              <span>Direct Link (&lt;3.5km)</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9aafc8' }}>
+              <span style={{ fontFamily: 'monospace', letterSpacing: '-1px' }}>·····</span>
+              <span>Multi-Hop Relay Link</span>
+            </div>
           </div>
         </div>
       )}
@@ -276,14 +394,33 @@ function RightPanel({ zone, zones, triggerSpike, resolveSpike }) {
 /* ── Root App ──────────────────────────── */
 export default function App() {
   const { zones, alerts, connected, liveEnabled, triggerSpike, resolveSpike, toggleConnection } = useWebSocket();
+  const [selectedCityId, setSelectedCityId] = useState('delhi');
   const [selectedId, setSelectedId] = useState(null);
 
-  // Auto-select first zone once data loads
-  useEffect(() => {
-    if (!selectedId && zones.length) setSelectedId(zones[0].zoneId);
-  }, [zones, selectedId]);
+  // Filter zones for the currently selected city
+  const cityZones = useMemo(() => {
+    return zones.filter(z => (z.cityId || 'delhi') === selectedCityId);
+  }, [zones, selectedCityId]);
 
-  const selectedZone = zones.find(z => z.zoneId === selectedId) || zones[0];
+  const currentCityConfig = CITIES_CONFIG[selectedCityId] || CITIES_CONFIG.delhi;
+
+  // Auto-select first zone of the city if current selection isn't in this city
+  useEffect(() => {
+    if (cityZones.length > 0) {
+      const exists = cityZones.some(z => z.zoneId === selectedId);
+      if (!exists) {
+        setSelectedId(cityZones[0].zoneId);
+      }
+    }
+  }, [cityZones, selectedId]);
+
+  const handleSelectCity = (cityId) => {
+    setSelectedCityId(cityId);
+    const firstZone = zones.find(z => (z.cityId || 'delhi') === cityId);
+    if (firstZone) setSelectedId(firstZone.zoneId);
+  };
+
+  const selectedZone = cityZones.find(z => z.zoneId === selectedId) || cityZones[0];
 
   return (
     <div className="app-grid">
@@ -298,33 +435,50 @@ export default function App() {
           <span style={{ fontFamily: 'IBM Plex Mono,monospace', fontSize: 13, fontWeight: 600,
             color: '#dde2ea', letterSpacing: '.06em' }}>NETBLIZZARD</span>
           <span style={{ width: 1, height: 14, background: '#333d4d' }} />
-          <span style={{ fontSize: 11, color: '#5c6a7c' }}>5G/6G Environmental Monitor</span>
+
+          {/* City Search Bar / Selector */}
+          <CitySelector selectedCityId={selectedCityId} onSelectCity={handleSelectCity} />
+
+          <span style={{ width: 1, height: 14, background: '#333d4d' }} />
+          <span style={{ fontSize: 11, color: '#5c6a7c' }}>5G/6G Smart City Monitor</span>
         </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <ZoneCounts zones={zones} />
+          <ZoneCounts zones={cityZones} />
           <span style={{ width: 1, height: 14, background: '#333d4d' }} />
           <LiveClock />
           <ConnToggle connected={connected} liveEnabled={liveEnabled} onToggle={toggleConnection} />
         </div>
       </header>
 
-      {/* ── Zone list ── */}
-      <ZoneList zones={zones} selectedId={selectedId} onSelect={setSelectedId} />
+      {/* ── Zone list for selected city ── */}
+      <ZoneList
+        zones={cityZones}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+        cityName={currentCityConfig.name}
+      />
 
       {/* ── Map ── */}
       <div className="app-map" style={{ position: 'relative', overflow: 'hidden', background: '#141719' }}>
-        {zones.length > 0
-          ? <CityMap zones={zones} selectedZoneId={selectedId} onSelectZone={setSelectedId} />
-          : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+        {cityZones.length > 0 ? (
+          <CityMap
+            zones={cityZones}
+            cityId={selectedCityId}
+            selectedZoneId={selectedId}
+            onSelectZone={setSelectedId}
+          />
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
               height: '100%', color: '#5c6a7c', fontFamily: 'IBM Plex Mono,monospace', fontSize: 11 }}>
-              CONNECTING TO SENSOR NETWORK…
-            </div>
-        }
+            CONNECTING TO {currentCityConfig.name.toUpperCase()} SENSOR NETWORK…
+          </div>
+        )}
 
-        {/* Collapsible AQI legend */}
+        {/* Collapsible AQI & Topology Legend */}
         <AqiLegend />
 
-        {/* Coordinate display */}
+        {/* Coordinate HUD */}
         {selectedZone && (
           <div style={{
             position: 'absolute', bottom: 10, right: 10, zIndex: 1000,
@@ -332,7 +486,7 @@ export default function App() {
             background: 'rgba(20,23,25,0.82)', border: '1px solid #333d4d',
             padding: '3px 8px', backdropFilter: 'blur(4px)',
           }}>
-            {selectedZone.lat?.toFixed(4)}°N {selectedZone.lng?.toFixed(4)}°E
+            {selectedZone.lat?.toFixed(4)}°N {selectedZone.lng?.toFixed(4)}°E · {currentCityConfig.name}
           </div>
         )}
       </div>
@@ -340,7 +494,7 @@ export default function App() {
       {/* ── Right panel ── */}
       <RightPanel
         zone={selectedZone}
-        zones={zones}
+        zones={cityZones}
         triggerSpike={triggerSpike}
         resolveSpike={resolveSpike}
       />

@@ -50,7 +50,7 @@ export function useWebSocket() {
           setAlerts(prev => [
             { id: Date.now() + Math.random(), ...msg.data, timestamp: msg.timestamp },
             ...prev,
-          ].slice(0, 60));
+          ].slice(0, 500));
         }
       } catch (err) {
         console.error('[WS] Parse error', err);

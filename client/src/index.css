@@ -51,7 +51,7 @@ body {
 .app-grid {
   display: grid;
   grid-template-columns: 176px 1fr 272px;
-  grid-template-rows: 40px 1fr 120px;
+  grid-template-rows: 40px 1fr 140px;
   height: 100dvh;
   overflow: hidden;
 }
@@ -213,6 +213,18 @@ body {
 .ring-medium { animation: ring-medium 1.4s ease-out infinite; }
 .ring-fast   { animation: ring-fast   0.55s ease-out infinite; }
 .ring-fast-2 { animation: ring-fast   0.55s ease-out 0.28s infinite; }
+
+/* ─── Network Tower animations ───────── */
+@keyframes tower-wave {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+@keyframes tower-beacon {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px #38bdf8); }
+  50% { opacity: 0.25; filter: drop-shadow(0 0 1px #38bdf8); }
+}
+.tower-wave { animation: tower-wave 2.2s cubic-bezier(0.1, 0.4, 0.6, 1) infinite; }
+.tower-beacon { animation: tower-beacon 1.1s ease-in-out infinite; }
 
 /* ─── Terminal cursor ────────────────── */
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }

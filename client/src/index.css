@@ -1,0 +1,249 @@
+@import "tailwindcss";
+
+/* ─── Tokens ─────────────────────────── */
+:root {
+  --bg-base:    #191c20;
+  --bg-surface: #1e2228;
+  --bg-raised:  #252a32;
+  --border:     #333d4d;
+  --border-soft:#272e38;
+
+  /* Text */
+  --text-1: #dde2ea;
+  --text-2: #9aafc8;
+  --text-3: #6a7d96;
+
+  /* VIVID status colors — bright, high-contrast */
+  --good:        #1fe090;   /* vivid green */
+  --good-dim:    #0d8c50;
+  --good-bg:     #0d2a1e;
+  --good-border: #174d34;
+  --mod:         #f5c518;   /* vivid amber/gold */
+  --mod-dim:     #c49a10;
+  --mod-bg:      #2a1f04;
+  --mod-border:  #4a3808;
+  --danger:      #ff4545;   /* vivid red */
+  --danger-dim:  #c02828;
+  --danger-bg:   #2a0c0c;
+  --danger-border:#6a1e1e;
+  --spike:       #ff1e1e;   /* ultra-bright for spiked/extreme */
+  --accent:      #4a8fa0;
+}
+
+/* ─── Reset ─────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  background: var(--bg-base);
+  color: var(--text-1);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  height: 100dvh;
+}
+#root { height: 100dvh; overflow: hidden; }
+
+/* ─── App grid ───────────────────────
+   Header | Header  | Header
+   Zones  | Map     | Panel
+   Log    | Log     | Log
+*/
+.app-grid {
+  display: grid;
+  grid-template-columns: 176px 1fr 272px;
+  grid-template-rows: 40px 1fr 120px;
+  height: 100dvh;
+  overflow: hidden;
+}
+.app-header   { grid-column: 1 / -1; grid-row: 1; }
+.app-zones    { grid-column: 1;       grid-row: 2; }
+.app-map      { grid-column: 2;       grid-row: 2; }
+.app-panel    { grid-column: 3;       grid-row: 2; }
+.app-terminal { grid-column: 1 / -1; grid-row: 3; }
+
+/* Responsive — collapse sidebars on small screens */
+@media (max-width: 900px) {
+  .app-grid {
+    grid-template-columns: 140px 1fr 220px;
+  }
+}
+@media (max-width: 680px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 40px 1fr 200px 120px;
+  }
+  .app-zones  { display: none; }
+  .app-map    { grid-column: 1; grid-row: 2; }
+  .app-panel  { grid-column: 1; grid-row: 3; }
+  .app-terminal { grid-column: 1; grid-row: 4; }
+}
+
+/* ─── Panel base (all sidebars) ──────── */
+.panel-base {
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.panel-base.right { border-right: none; border-left: 1px solid var(--border); }
+
+/* ─── Section label ──────────────────── */
+.sec-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 6px 10px 4px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-base);
+  flex-shrink: 0;
+}
+
+/* ─── Stat row ───────────────────────── */
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 11px;
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.stat-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-1);
+}
+.stat-unit {
+  font-weight: 400;
+  font-size: 9px;
+  color: var(--text-3);
+  margin-left: 2px;
+}
+
+/* ─── Dot flicker animations ─────────────
+   4 tiers: slow(good) / med(warn) / fast(danger) / ultra(spiked)
+*/
+@keyframes flicker-slow {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 6px 2px var(--good); }
+  50%       { opacity: 0.55; box-shadow: 0 0 2px 0px var(--good); }
+}
+@keyframes flicker-med {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 8px 3px var(--mod); }
+  50%       { opacity: 0.45; box-shadow: 0 0 2px 0px var(--mod); }
+}
+@keyframes flicker-fast {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 10px 4px var(--danger); }
+  50%       { opacity: 0.35; box-shadow: 0 0 2px 0px var(--danger); }
+}
+@keyframes flicker-ultra {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 14px 6px var(--spike); background: var(--spike); }
+  50%       { opacity: 0.15; box-shadow: 0 0 2px 0px var(--spike); }
+}
+
+/* ─── Status dot ─────────────────────── */
+.dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.dot-good   { background: var(--good);   animation: flicker-slow  2.8s ease-in-out infinite; box-shadow: 0 0 6px 2px var(--good); }
+.dot-mod    { background: var(--mod);    animation: flicker-med   1.3s ease-in-out infinite; box-shadow: 0 0 8px 3px var(--mod); }
+.dot-danger { background: var(--danger); animation: flicker-fast  0.55s ease-in-out infinite; box-shadow: 0 0 10px 4px var(--danger); }
+.dot-spike  { background: var(--spike);  animation: flicker-ultra 0.22s ease-in-out infinite; box-shadow: 0 0 14px 6px var(--spike); }
+
+/* ─── Sharp badge ────────────────────── */
+.badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border: 1px solid;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.badge-good   { color: var(--good);   border-color: var(--good-border);   background: var(--good-bg); }
+.badge-mod    { color: var(--mod);    border-color: var(--mod-border);    background: var(--mod-bg); }
+.badge-danger { color: var(--danger); border-color: var(--danger-border); background: var(--danger-bg); }
+
+
+/* ─── Leaflet ────────────────────────── */
+.leaflet-container { background: #141719 !important; }
+.leaflet-tile { filter: brightness(0.28) saturate(0.3) hue-rotate(185deg) contrast(1.1); }
+.leaflet-control-zoom { border: 1px solid var(--border) !important; border-radius: 2px !important; }
+.leaflet-control-zoom a {
+  background: var(--bg-surface) !important; color: var(--text-2) !important;
+  border-color: var(--border) !important; border-radius: 0 !important;
+  font-size: 16px !important; line-height: 26px !important; width: 26px !important; height: 26px !important;
+}
+.leaflet-control-attribution {
+  background: rgba(25,28,32,0.85) !important; color: var(--text-3) !important;
+  font-size: 9px !important; padding: 1px 4px !important; border-radius: 0 !important;
+}
+.leaflet-popup-content-wrapper {
+  background: var(--bg-surface) !important; border: 1px solid var(--border) !important;
+  border-radius: 2px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important; padding: 0 !important;
+}
+.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-tip-container { display: none !important; }
+
+/* ─── Sensor ring animations ─────────── */
+@keyframes ring-slow   { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes ring-medium { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.9); opacity: 0; } }
+@keyframes ring-fast   { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(3.4); opacity: 0; } }
+.ring-slow   { animation: ring-slow   3s   ease-out infinite; }
+.ring-medium { animation: ring-medium 1.4s ease-out infinite; }
+.ring-fast   { animation: ring-fast   0.55s ease-out infinite; }
+.ring-fast-2 { animation: ring-fast   0.55s ease-out 0.28s infinite; }
+
+/* ─── Terminal cursor ────────────────── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.blink { animation: blink 1.1s step-start infinite; }
+
+/* ─── Scrollbar ──────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ─── Button ─────────────────────────── */
+.btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; border: 1px solid; cursor: pointer;
+  padding: 4px 0; display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-spike   { background: #2a1818; border-color: var(--danger); color: var(--danger); }
+.btn-spike:not(:disabled):hover   { background: #3a2020; }
+.btn-resolve { background: #18281e; border-color: var(--good);   color: var(--good);   }
+.btn-resolve:not(:disabled):hover { background: #203428; }
+
+/* ─── Tab bar ────────────────────────── */
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-base); flex-shrink: 0; }
+.tab-btn {
+  flex: 1; padding: 7px 4px; cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text-3); border-bottom: 2px solid transparent; transition: color 0.15s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--bg-surface); }
+.tab-btn:hover:not(.active) { color: var(--text-2); }

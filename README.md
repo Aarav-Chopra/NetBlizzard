@@ -1,120 +1,211 @@
 # NetBlizzard
-**Theme 7 — 5G/6G-Enabled Smart City Communication and Monitoring**
-**Prototype 4 — Environmental & Pollution Monitoring Network over 5G/6G**
+### Environmental & Pollution Monitoring Network over 5G/6G
+**PROTOWAVE 2026 — From Prompt to Prototype**  
+*Theme 7: 5G/6G-Enabled Smart City Communication and Monitoring*  
+*Prototype 4: Environmental & Pollution Monitoring Network over 5G/6G*  
+*Department of Networking and Communications | School of Computing | SRM-IST*
 
-A city-wide simulated network of air-quality and noise sensors that stream
-readings over a mock 5G/6G uplink. When pollution or noise in a zone crosses
-a danger threshold, the network automatically boosts that zone's update
-frequency and moves it onto a reserved low-latency priority slice.
+---
 
-No build step, no backend, no dependencies. Open [`index.html`](index.html)
-in a browser and it runs.
+## Executive Summary & Problem Statement
 
-```bash
-# from this folder
-start index.html      # Windows
+Modern smart cities require real-time atmospheric and acoustic environmental sensing to protect public health. However, streaming dense environmental telemetry from thousands of city-wide sensor nodes constantly strains wireless spectrum and energy budgets.
+
+**NetBlizzard** implements an intelligent **5G/6G adaptive telemetry network**:
+- Under **normal conditions**, sensor nodes transmit periodic telemetry at conservative frequencies using standard broadband channels (**eMBB** / **mMTC**), preserving network resources.
+- When an air quality or acoustic threshold breach occurs (e.g., AQI > 150, PM2.5 > 55 ug/m3, or Noise > 80 dB), the network automatically provisions an **Ultra-Reliable Low-Latency Communication (URLLC)** slice.
+- Transmission rate dynamically accelerates from **0.2 Hz (5 s) -> 2.0 Hz (500 ms)**, network latency drops from ~45 ms -> 1-2 ms, and data packets receive Critical Priority (P1) QoS treatment.
+
+---
+
+## 5G/6G Telemetry & Networking Concepts Simulated
+
+| Feature | Safe State (Normal) | Warning State (Elevated) | Danger / Spiked State (Emergency) |
+| :--- | :--- | :--- | :--- |
+| **Network Slice** | **eMBB** (Enhanced Mobile Broadband) | **mMTC** (Massive Machine-Type Comms) | **URLLC** (Ultra-Reliable Low-Latency) |
+| **QoS Priority** | `P3` (Low Priority) | `P2` (Elevated) | `P1` (CRITICAL — Preempts non-urgent traffic) |
+| **Update Frequency** | 0.2 Hz (every 5000 ms) | 0.5 Hz (every 2000 ms) | 2.0 Hz (every 500 ms) |
+| **Simulated Latency** | 40-50 ms | 15-20 ms | **1.0-2.5 ms** |
+| **Bandwidth Allocation**| 2-4 Mbps | 5-8 Mbps | **10-15 Mbps** |
+| **Visual Indicator** | Vivid Green (#1fe090) — Slow breath | Vivid Amber (#f5c518) — Medium pulse | Vivid Red (#ff4545) — Rapid alert pulse |
+| **Spiked / Critical** | — | — | Ultra-Red (#ff1e1e) — Ultra-fast flicker (0.22 s) |
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Sensor_Simulation [8-Zone Sensor Engine - simulator.js]
+        Z[Delhi NCR Smart City Nodes Z1-Z8] --> RW[Random-Walk Drift Engine]
+        RW --> TH{Threshold Check & Spike Engine}
+    end
+
+    subgraph 5G_6G_Core [Network Slicing Manager - networkManager.js]
+        TH -->|Normal AQI/Noise| SL1[eMBB Slice: P3 / 0.2Hz / 45ms]
+        TH -->|Elevated Readings| SL2[mMTC Slice: P2 / 0.5Hz / 18ms]
+        TH -->|Threshold Breached| SL3[URLLC Slice: P1 / 2.0Hz / 1.5ms]
+    end
+
+    subgraph Server_Layer [Node.js Express + WebSocket - index.js]
+        SL1 & SL2 & SL3 --> WS[WebSocket Server ws://localhost:4000]
+        WS --> REST[REST API /api/spike /api/resolve /api/zones]
+    end
+
+    subgraph UI_Layer [React 18 + Vite + Tailwind CSS v4]
+        WS -->|SENSOR_UPDATE + ALERT| HOOK[useWebSocket Hook]
+        HOOK --> MAP[CityMap: Leaflet + Heatmap + Pulse Pins]
+        HOOK --> NET[NetworkPanel: Slice & QoS Telemetry]
+        HOOK --> CHART[SensorDetail: Recharts Live Trends]
+        HOOK --> CTRL[ControlPanel: Live Spike/Resolve Demo]
+        HOOK --> LOG[TerminalLog: Monospace NOC Alert Stream]
+    end
 ```
 
 ---
 
-## How to demo it (60–90 seconds)
+## Project Directory Structure
 
-1. Open `index.html`. 24 zones are streaming quietly — pins pulse slowly,
-   mostly green/yellow.
-2. Click **⚡ Inject Incident** — a zone spikes red, its pin pulses fast,
-   a `PRIORITY` badge appears, a line to the tower thickens, and the ticker
-   logs the threshold crossing with the interval change (`6s → 1s`).
-3. Watch the packet dots: gold dots (priority slice) travel to the tower
-   noticeably faster than the blue dots (normal slice) — same shared uplink,
-   different QoS treatment.
-4. Toggle **5G → 6G** to show the latency profile drop (stats strip updates
-   live).
-5. Point at **Channel Utilization** / **Dropped Readings** — trigger several
-   incidents at once (or 4x speed) to show the uplink congest and normal-slice
-   readings queue/drop while the priority slice stays clean.
-6. Let it recover: after a few clean ticks, the zone's badge disappears and
-   the ticker logs "priority released."
+```
+D:\Projects\NetBlizzard\
+├── package.json               # Root scripts (server + client dev)
+├── README.md                  # Comprehensive documentation & audit report
+├── server/                    # Backend telemetry & 5G/6G slice simulation
+│   ├── index.js               # Express HTTP + WebSocket server (port 4000)
+│   ├── simulator.js           # 8-zone sensor generator with history buffers
+│   ├── networkManager.js      # Slicing, QoS priority, latency & bandwidth logic
+│   └── package.json           # Server dependencies (express, ws, cors)
+└── client/                    # Frontend NOC / Operations Dashboard
+    ├── index.html             # HTML shell with IBM Plex font preloading
+    ├── vite.config.js         # Vite configuration with /api reverse proxy
+    ├── package.json           # Client dependencies (React, Leaflet, Recharts, Lucide)
+    └── src/
+        ├── main.jsx           # React root mounting point
+        ├── index.css          # Design system, CSS grid, EPA color tokens, animations
+        ├── App.jsx            # Main dashboard shell, responsive grid, status bar
+        ├── hooks/
+        │   └── useWebSocket.js # Real-time state synchronization & reconnect toggle
+        └── components/
+            ├── CityMap.jsx       # Leaflet map, 2km grid, hex overlay, pulsing markers
+            ├── NetworkPanel.jsx  # 5G/6G link telemetry, slice badge, QoS meters
+            ├── SensorDetail.jsx  # Recharts live multi-metric charts with threshold lines
+            ├── ControlPanel.jsx  # Interactive SPIKE and RESOLVE demo triggers
+            └── TerminalLog.jsx   # Monospace NOC alert feed with event level styling
+```
 
 ---
 
-## Problem breakdown
+## Dashboard Feature Tour
 
-The brief asks for three linked mechanisms, not just a live dashboard:
+### 1. Dominant GIS City Map (CityMap.jsx)
+- Dark-filtered OpenStreetMap cartography centered on **Delhi NCR (8 critical zones)**.
+- **2-km Coordinate Grid Overlay** simulating professional telecom/NOC map tooling.
+- **Hex-approximate Heat Overlay** providing color-graded pollution dispersion (Green -> Yellow -> Orange -> Red).
+- **Telemetry Dot Pins** with multi-tier pulsing rings:
+  - Safe zones breathe slowly (2.8 s).
+  - Warning zones pulse at moderate intervals (1.3 s).
+  - Danger zones pulse rapidly (0.55 s).
+  - Spiked zones trigger high-intensity double-ring ultra-fast flicker (0.22 s).
+- Clickable pins that surface rich interactive tooltips and update sidebars.
 
-1. **Simulated sensor network** — air-quality (AQI) + noise (dB) sensors per
-   zone, streaming over a **mock** 5G/6G link (explicitly simulated, no real
-   hardware/radio required for a one-day build).
-2. **Adaptive network behaviour** — when a zone's reading crosses a danger
-   threshold, the network must *react*: report more often, and get network
-   priority. This is the core "communication/networking" requirement, and
-   it maps directly onto a real concept:
-   - **Network slicing / QoS prioritization.** Real 5G/6G core networks can
-     carve a shared radio channel into slices with different guarantees —
-     e.g. an eMBB slice (best-effort, high-throughput) and a URLLC slice
-     (reserved capacity, low, bounded latency) for safety/critical IoT
-     traffic. A zone in "danger" is analogous to a critical-IoT device: it
-     gets moved to the low-latency reserved slice.
-   - **Adaptive sampling.** Edge/IoT systems commonly reduce reporting
-     interval under normal conditions to save power/bandwidth, and increase
-     it when an anomaly is detected — exactly the 6s→1s behaviour here.
-3. **Visualization** — the brief explicitly specifies a green→red heat-map,
-   pins that pulse faster as readings worsen, and a live alert ticker. That
-   is the primary demo surface, built as specified.
+### 2. Live Telemetry & 5G/6G Slicing Panel (NetworkPanel.jsx)
+- Selected zone coordinate header with high-precision lat/long telemetry.
+- Prominent 30 px bold **AQI Index Readout** with EPA classification badge.
+- Real-time sensor channels: **AQI**, **PM2.5 (ug/m3)**, **CO2 (ppm)**, and **Noise (dB)**.
+- Active **5G/6G Network Slice** card with visual priority rating (P1-P3).
+- Real-time link telemetry: simulated latency (ms), update frequency (Hz), reporting interval (ms), and bandwidth (Mbps).
 
-## What is actually simulated (and how)
+### 3. Real-Time Time-Series Analysis (SensorDetail.jsx)
+- Built with high-performance SVG line charts (`Recharts`) with zero interpolation lag.
+- Tracks the last 40 data points per zone for all 4 parameters simultaneously.
+- Features red dashed **Danger Threshold Reference Lines**; charts dynamically light up with alert badges when thresholds are breached.
 
-| Concept | Real-world analogue | Implementation |
-|---|---|---|
-| Shared uplink with finite capacity | Cell sector's finite PRBs/bandwidth | `CHANNEL_CAPACITY` = readings/tick the link can carry ([app.js](app.js)) |
-| Network slicing / QoS | 5G network slicing (eMBB vs URLLC) | Priority-slice packets are served first every tick; normal-slice packets share what's left |
-| Congestion → queuing/drop | Best-effort traffic degrades under load | Excess normal-slice packets are counted as dropped; priority slice is protected |
-| Adaptive sampling | Edge-triggered reporting | `updateInterval` flips `6 ticks → 1 tick` the instant a zone crosses threshold |
-| Latency by slice & RAT generation | 5G vs 6G target latencies | Priority ≈4–10 ms (5G) / 0.5–2 ms (6G); Normal ≈15–40 ms (5G) / 5–15 ms (6G), inflated further under congestion |
-| Hysteresis / cooldown | Avoids alert flapping at the threshold edge | Zone must stay under threshold for `COOLDOWN_TICKS` before priority is released |
-| AQI colour scale | US EPA AQI bands | 0–50 good → 400+ hazardous, interpolated green→purple |
-| Noise threshold | Community/occupational exposure guidance (~85 dB) | Zones with noise > 85 dB also trigger danger state |
+### 4. Interactive Spike Simulator (ControlPanel.jsx)
+- Allows jury members or presenters to manually inject environmental pollution surges into any zone with a single click.
+- Instantly triggers server-side threshold violation, URLLC slice escalation, and terminal alert broadcasts.
+- **RESOLVE** restores the zone to ambient equilibrium and downgrades the slice to eMBB.
 
-All data is **synthetic** (random-walk + injected incidents) — this is a
-simulation/model demo, clearly labelled as such in the UI, not a claim of
-real sensor data.
+### 5. Terminal Alert Stream (TerminalLog.jsx)
+- Fixed 120 px bottom operations terminal with status accents and blinking shell cursor.
+- Formatted log stream tagged with `[CRIT]`, `[WARN]`, and `[ OK ]` severity codes.
 
-## Architecture
+### 6. Telecom Status Header (App.jsx)
+- Zone distribution counts (Safe, Warning, Critical).
+- Telecom-style 4-bar **Signal Strength Meter** dynamically mapped to average network latency.
+- Live system clock (HH:MM:SS).
+- Interactive **LIVE / OFFLINE Switch** with one-click instant reconnection trigger.
 
+---
+
+## Quick Start Guide
+
+### Prerequisites
+- **Node.js**: v18.0.0 or later (Tested on Node v24.12.0)
+- **npm**: v9.0.0 or later
+
+### Installation
+Both server and client dependencies are pre-installed in the repository. To re-install:
+```powershell
+# Install server dependencies
+cd D:\Projects\NetBlizzard\server
+npm install
+
+# Install client dependencies
+cd D:\Projects\NetBlizzard\client
+npm install
 ```
-index.html   structure: topbar, stats strip, arena (map + tower + link
-             lines + packet layer), alert ticker
-style.css    dark "network ops center" theme, pulse/packet animations,
-             AQI colour tokens
-app.js       simulation loop (1 tick/sec, adjustable 1x/2x/4x):
-               1. per-zone: random-walk + incident decay -> new reading
-               2. threshold check -> enter/exit danger (with cooldown)
-               3. network tick: partition packets into priority/normal,
-                  apply capacity limit, compute latency, spawn packet
-                  animations, log congestion
-               4. render: pin colour/pulse speed, ticker, stats, sparkline
+
+### Running the Application
+
+Open two terminals in VS Code (`Ctrl+Shift+` `` ` ``):
+
+**Terminal 1 — Backend Telemetry Server:**
+```powershell
+cd D:\Projects\NetBlizzard\server
+node index.js
 ```
+*Server starts on `http://localhost:4000` with WebSocket on `ws://localhost:4000`.*
 
-Everything runs client-side; `tick()` in [app.js](app.js) is the single
-place that ties sensor state, network QoS logic, and rendering together.
+**Terminal 2 — Frontend Operations Dashboard:**
+```powershell
+cd D:\Projects\NetBlizzard\client
+npm run dev
+```
+*Vite serves the client on `http://localhost:5173`.*
 
-## Rubric alignment
+Open your web browser and navigate to:
+**http://localhost:5173**
 
-- **Technical depth (10):** real network-slicing/QoS reasoning drives the
-  priority mechanism, not just a colour change — capacity, congestion, and
-  latency-by-slice are all modelled and visible in the stats strip.
-- **Feasibility & completeness (5):** zero-setup, zero-dependency, runs by
-  opening a file — reliable for a one-day build and live judging.
-- **Communication/networking integration (5):** shared-channel capacity,
-  slicing, adaptive sampling, RAT-generation latency profile (5G/6G toggle).
-- **Presentation & visual clarity (5):** matches the poster's tip directly —
-  green→red heat-map, pins pulsing faster as readings worsen, live alert
-  ticker — plus a manual incident trigger for a controllable live demo.
+---
 
-## Possible extensions (if time allows)
+## Demonstration Script for Hackathon Jury
 
-- Per-zone historical sparkline on hover/click.
-- A second "6G network slicing" mode with more than 2 slices (e.g. add a
-  mid-tier for "Moderate" zones).
-- Export ticker log as a CSV "incident report."
-- Replace the synthetic random walk with a real open AQI/noise dataset for
-  a "hybrid" demo (simulated network behaviour, real historical readings).
+Follow this sequence to score full marks against the judging rubric:
+
+1. **Orientation (Presentation & Visual Clarity - 5/5):**
+   - Explain that **NetBlizzard** is designed as a true NOC / infrastructure tool (inspired by Grafana and PurpleAir), avoiding generic cards and artificial styling.
+   - Point out the dark GIS map with the 2-km coordinate grid, EPA-scale AQI swatches, and the live status bar.
+
+2. **5G/6G Concept Explanation (Communication/Networking Integration - 5/5):**
+   - Show that under normal baseline, Zone 1 is on an **eMBB** slice with low transmission frequency (0.2 Hz, 5 s interval) and ~45 ms latency to conserve spectrum and battery.
+
+3. **Live Trigger Demonstration (Technical Depth & Prototype Quality - 10/10):**
+   - Navigate to the **Control** tab on the right sidebar.
+   - Click **`SPIKE`** on **Zone 1 (Central Hub)**.
+   - **Observe the immediate cascade:**
+     - The map marker and sidebar dot transition to vivid red and begin **flickering at ultra-high frequency** (0.22 s).
+     - The network manager auto-upgrades the slice to **URLLC (Ultra-Reliable Low-Latency Communication)**.
+     - Telemetry reporting jumps 10x from **0.2 Hz -> 2.0 Hz** (500 ms intervals).
+     - Latency plummets to **1.0-2.0 ms**, and priority elevates to **`P1 CRITICAL`**.
+     - An alert is pushed instantly into the bottom **Terminal Log**.
+   - Switch to the **Charts** tab to show real-time spike curvature breaching the red threshold line.
+
+4. **Recovery & Self-Healing (Feasibility & Completeness - 5/5):**
+   - Click **`RESOLVE`** in the Control tab.
+   - Show the network autonomously reverting to standard **eMBB** slice and 5 s interval reporting.
+   - Demonstrate the **LIVE / OFFLINE** toggle switch in the header.
+
+---
+<div align="center">
+NetBlizzard (c) 2026 SRM Institute of Science and Technology. Developed for PROTOWAVE 2026.
+</div>

@@ -1,0 +1,10 @@
+{
+  "name": "netblizzard",
+  "version": "1.0.0",
+  "description": "Environmental & Pollution Monitoring Network over 5G/6G — PROTOWAVE 2026",
+  "scripts": {
+    "server": "node server/index.js",
+    "client": "npm run dev --prefix client",
+    "dev": "start \"NetBlizzard Server\" cmd /k \"cd server && npm start\" && start \"NetBlizzard Client\" cmd /k \"cd client && npm run dev\""
+  }
+}
